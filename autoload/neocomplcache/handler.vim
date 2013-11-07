@@ -94,6 +94,7 @@ function! neocomplcache#handler#_restore_update_time() "{{{
 endfunction"}}}
 
 function! neocomplcache#handler#_do_auto_complete(event) "{{{
+  let g:complete_handler = 'neocomplcache'
   if s:check_in_do_auto_complete()
     return
   endif
