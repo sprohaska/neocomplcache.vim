@@ -116,6 +116,16 @@ function! neocomplcache#mappings#complete_common_string() "{{{
     let neocomplcache = neocomplcache#get_current_neocomplcache()
     let candidates = neocomplcache#keyword_filter(
           \ copy(neocomplcache.candidates), complete_str)
+
+    " If there are no normal candidates, also try filename completion.
+    if empty(candidates)
+        let pattern = neocomplcache#get_keyword_pattern_end('filename')
+        let [complete_pos, complete_str] =
+                \ neocomplcache#match_word(neocomplcache#get_cur_text(1), pattern)
+        let candidates = neocomplcache#keyword_filter(
+            \ copy(neocomplcache.candidates), complete_str)
+    endif
+
   finally
     let g:neocomplcache_enable_fuzzy_completion = is_fuzzy
   endtry
