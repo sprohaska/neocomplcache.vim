@@ -89,6 +89,19 @@ function! neocomplcache#mappings#undo_completion() "{{{
         \. repeat("\<BS>", len(complete_str)) . old_keyword_str
 endfunction"}}}
 
+function! s:common_head(strs)
+  if empty(a:strs)
+    return ''
+  endif
+  let len = len(a:strs)
+  if len == 1
+    return a:strs[0]
+  endif
+  let strs = len == 2 ? a:strs : sort(copy(a:strs))
+  let pat = substitute(strs[0], '.', '[\0]', 'g')
+  return pat == '' ? '' : matchstr(strs[-1], '^\%[' . pat . ']')
+endfunction
+
 function! neocomplcache#mappings#complete_common_string() "{{{
   if !exists(':NeoComplCacheDisable')
     return ''
@@ -97,58 +110,78 @@ function! neocomplcache#mappings#complete_common_string() "{{{
   " Save options.
   let ignorecase_save = &ignorecase
 
-  " Get cursor word.
-  let [complete_pos, complete_str] =
-        \ neocomplcache#match_word(neocomplcache#get_cur_text(1))
-
   if neocomplcache#is_text_mode()
     let &ignorecase = 1
-  elseif g:neocomplcache_enable_smart_case && complete_str =~ '\u'
-    let &ignorecase = 0
   else
     let &ignorecase = g:neocomplcache_enable_ignore_case
   endif
 
   let is_fuzzy = g:neocomplcache_enable_fuzzy_completion
 
+  " echom "XXX"
+
+  let complete_str = ''
+  let common_str = ''
   try
     let g:neocomplcache_enable_fuzzy_completion = 0
     let neocomplcache = neocomplcache#get_current_neocomplcache()
+    let candidates = neocomplcache.candidates
+    let words = map(copy(candidates), 'v:val.word')
+    let words = filter(copy(words), 'len(v:val) > 2')
+    let common = s:common_head(words)
+
+    " echom "words 1: " . string(words)
+    " echom "common 1: " . common
+
+    let common_str = common
+    for i in range(max([1, len(common) - 1]), 2, -1)
+        let pattern = '\V' . escape(common[0:i], '\')
+        let [cpos, cstr] =
+                \ neocomplcache#match_word(neocomplcache#get_cur_text(1), pattern)
+        if cstr != ''
+            let complete_str = cstr
+        endif
+    endfor
+
+    " echom "complete_str 1: " . complete_str
+    " echom "common_str 1: " . common_str
+
+    " complete_str might be longer than common_str, because
+    " neocomplcache.candidates seem to contain more that what is currently
+    " visible in the context menu and neocomplcache#match_word() does match
+    " more than the pattern.  It seems to be sufficient if the pattern is
+    " found before the current cursor position.  If so, the match is extende
+    " up to the cursor position.
     let candidates = neocomplcache#keyword_filter(
           \ copy(neocomplcache.candidates), complete_str)
-
-    " If there are no normal candidates, also try filename completion.
-    if empty(candidates)
-        let pattern = neocomplcache#get_keyword_pattern_end('filename')
-        let [complete_pos, complete_str] =
+    let words = map(copy(candidates), 'v:val.word')
+    let words = filter(copy(words), 'len(v:val) > 2')
+    let common = s:common_head(words)
+    echom "words 2: " . string(words)
+    echom "common 2: " . common
+    let common_str = common
+    for i in range(max([1, len(common) - 1]), 2, -1)
+        let pattern = '\V' . escape(common[0:i], '\')
+        let [cpos, cstr] =
                 \ neocomplcache#match_word(neocomplcache#get_cur_text(1), pattern)
-        let candidates = neocomplcache#keyword_filter(
-            \ copy(neocomplcache.candidates), complete_str)
-    endif
-
+        if cstr != ''
+            let complete_str = cstr
+        endif
+    endfor
   finally
     let g:neocomplcache_enable_fuzzy_completion = is_fuzzy
   endtry
 
-  if empty(candidates)
-    let &ignorecase = ignorecase_save
+  " echom "complete_str: " . complete_str
+  " echom "common_str: " . common_str
 
-    return ''
-  endif
-
-  let common_str = candidates[0].word
-  for keyword in candidates[1:]
-    while !neocomplcache#head_match(keyword.word, common_str)
-      let common_str = common_str[: -2]
-    endwhile
-  endfor
   if &ignorecase
     let common_str = tolower(common_str)
   endif
 
   let &ignorecase = ignorecase_save
 
-  if common_str == ''
+  if common_str == '' || complete_str == ''
     return ''
   endif
 
