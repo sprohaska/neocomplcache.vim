@@ -118,62 +118,69 @@ function! neocomplcache#mappings#complete_common_string() "{{{
 
   let is_fuzzy = g:neocomplcache_enable_fuzzy_completion
 
-  " echom "XXX"
+  echom "XXX"
 
   let complete_str = ''
   let common_str = ''
+  let a:minlen = 3
   try
     let g:neocomplcache_enable_fuzzy_completion = 0
     let neocomplcache = neocomplcache#get_current_neocomplcache()
     let candidates = neocomplcache.candidates
     let words = map(copy(candidates), 'v:val.word')
-    let words = filter(copy(words), 'len(v:val) > 2')
-    let common = s:common_head(words)
+    let words = filter(copy(words), 'len(v:val) >= '. a:minlen)
 
-    " echom "words 1: " . string(words)
-    " echom "common 1: " . common
+    echom "neocomplcache.complete_str: " . neocomplcache.complete_str
+    echom "words: " . string(words)
 
-    let common_str = common
-    for i in range(max([1, len(common) - 1]), 2, -1)
-        let pattern = '\V' . escape(common[0:i], '\')
-        let [cpos, cstr] =
-                \ neocomplcache#match_word(neocomplcache#get_cur_text(1), pattern)
-        if cstr != ''
-            let complete_str = cstr
+    " Try to match substrings of each candidate word.  The match is a
+    " substring of the current line that may be longer than the substring of
+    " the candidate work.  Accept a word only if it starts with the match.
+    " All accepted matches are equal and can be used as complete_str.
+    let matched_common = []
+    let matched_words = []
+    for w in words
+        let m = ''
+        for i in range(max([a:minlen - 2, len(w) - 1]), a:minlen - 1, -1)
+            let pattern = '\V' . escape(w[0:i], '\')
+            let [_, cstr] =
+                    \ neocomplcache#match_word(neocomplcache#get_cur_text(1), pattern)
+            if cstr != ''
+                let m = cstr
+                break
+            endif
+        endfor
+        echom "word: " . w . ", match: " . m
+        if m != ''
+            if stridx(w, m) == 0
+                let complete_str = m
+                let matched_words += [w]
+                let matched_common += [m]
+            endif
         endif
     endfor
 
-    " echom "complete_str 1: " . complete_str
-    " echom "common_str 1: " . common_str
+    echom "matched_common: " . string(matched_common)
+    echom "matched_words: " . string(matched_words)
 
-    " complete_str might be longer than common_str, because
-    " neocomplcache.candidates seem to contain more that what is currently
-    " visible in the context menu and neocomplcache#match_word() does match
-    " more than the pattern.  It seems to be sufficient if the pattern is
-    " found before the current cursor position.  If so, the match is extende
-    " up to the cursor position.
-    let candidates = neocomplcache#keyword_filter(
-          \ copy(neocomplcache.candidates), complete_str)
-    let words = map(copy(candidates), 'v:val.word')
-    let words = filter(copy(words), 'len(v:val) > 2')
-    let common = s:common_head(words)
-    echom "words 2: " . string(words)
-    echom "common 2: " . common
-    let common_str = common
-    for i in range(max([1, len(common) - 1]), 2, -1)
-        let pattern = '\V' . escape(common[0:i], '\')
-        let [cpos, cstr] =
-                \ neocomplcache#match_word(neocomplcache#get_cur_text(1), pattern)
-        if cstr != ''
-            let complete_str = cstr
-        endif
-    endfor
+    let common_str = s:common_head(matched_words)
+
+    " let common = s:common_head(matched_words)
+    " let common_str = common
+    " for i in range(max([a:minlen - 2, len(common) - 1]), a:minlen - 1, -1)
+    "     let pattern = '\V' . escape(common[0:i], '\')
+    "     let [_, cstr] =
+    "             \ neocomplcache#match_word(neocomplcache#get_cur_text(1), pattern)
+    "     if cstr != ''
+    "         let complete_str = cstr
+    "     endif
+    " endfor
   finally
     let g:neocomplcache_enable_fuzzy_completion = is_fuzzy
   endtry
 
-  " echom "complete_str: " . complete_str
-  " echom "common_str: " . common_str
+  echom "common_str: " . common_str
+  echom "complete_str: " . complete_str
 
   if &ignorecase
     let common_str = tolower(common_str)
