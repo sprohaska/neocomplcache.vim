@@ -143,7 +143,8 @@ function! neocomplcache#mappings#complete_common_string() "{{{
     let matched_words = []
     for w in words
         let m = ''
-        for i in range(max([a:minlen - 1, len(complete_str) - 1]), max([a:minlen - 2, len(w) - 1]), 1)
+        let start = max([a:minlen - 1, len(complete_str) - 1])
+        for i in range(start, max([start - 1, len(w) - 1]), 1)
             let pattern = '\V' . escape(w[0:i], '\')
             let [_, str] =
                     \ neocomplcache#match_word(neocomplcache#get_cur_text(1), pattern)
