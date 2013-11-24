@@ -126,53 +126,62 @@ function! neocomplcache#mappings#complete_common_string() "{{{
   try
     let g:neocomplcache_enable_fuzzy_completion = 0
     let neocomplcache = neocomplcache#get_current_neocomplcache()
-    let candidates = neocomplcache.candidates
-    let words = map(copy(candidates), 'v:val.word')
-    let words = filter(copy(words), 'len(v:val) >= '. a:minlen)
+    let cur_line = neocomplcache#get_cur_text(1)
 
     " echom "keys(neocomplcache): " . string(keys(neocomplcache))
     " echom "neocomplcache: " . string(neocomplcache)
     " echom "neocomplcache.complete_results: " . string(neocomplcache.complete_results)
-    echom "neocomplcache.complete_str: " . neocomplcache.complete_str
-    echom "neocomplcache.complete_pos: " . neocomplcache.complete_pos
-    echom "words: " . string(words)
+    " echom "neocomplcache.complete_results...complete_pos: " . string(map(copy(neocomplcache.complete_results), 'v:val.neocomplcache__context.complete_pos'))
+    " echom "neocomplcache.cur_text: " . neocomplcache.cur_text
+    " echom "neocomplcache#get_cur_text(1): " . neocomplcache#get_cur_text(1)
+    " echom "neocomplcache.complete_str: " . neocomplcache.complete_str
+    " echom "neocomplcache.complete_pos: " . neocomplcache.complete_pos
 
-    " Try to match substrings of each candidate word.  The match is a
-    " substring of the current line and may be longer than the substring of
-    " the candidate word that was used as a pattern.  Accept a word only if it
-    " starts with the match.  All accepted matches are equal, and any of them
-    " can be used as complete_str.  Hence, the search is started with a
-    " substring that is at least as long as complete_str.
-    "
-    " TODO(spr): take complete_pos of results into account; maybe from
-    " complete_results.
+    " Try to match substrings of each candidate word of complete_results.  The
+    " match is a substring of the current line and may be longer than the
+    " substring of the candidate word that was used as a pattern.  Accept a
+    " word only if it starts with the match.  All accepted matches are equal,
+    " and any of them can be used as complete_str.  Hence, the search is
+    " started with a substring that is at least as long as complete_str.
     let matched_common = []
     let matched_words = []
-    for w in words
-        let m = ''
-        let start = max([a:minlen - 1, len(complete_str) - 1])
-        for i in range(start, max([start - 1, len(w) - 1]), 1)
-            let pattern = '\V' . escape(w[0:i], '\')
-            let [_, str] =
-                    \ neocomplcache#match_word(neocomplcache#get_cur_text(1), pattern)
-            if str == ''
-                break
+    for r in neocomplcache.complete_results
+        let cur_compl_text = cur_line[r.neocomplcache__context.complete_pos:]
+
+        let candidates = r.neocomplcache__context.candidates
+        let words = map(copy(candidates), 'v:val.word')
+        let words = filter(copy(words), 'len(v:val) >= '. a:minlen)
+
+        " echom "r: " . string(r)
+        echom "cur_line: " . cur_line
+        echom "cur_compl_text: " . cur_compl_text
+        echom "words: " . string(words)
+
+        for w in words
+            let m = ''
+            let start = max([a:minlen - 1, len(complete_str) - 1])
+            for i in range(start, max([start - 1, len(w) - 1]), 1)
+                let pattern = '\V' . escape(w[0:i], '\')
+                let [_, str] = neocomplcache#match_word(cur_compl_text, pattern)
+                if str == ''
+                    break
+                endif
+                let m = str
+            endfor
+
+            echom "word: " . w . ", match: " . m
+
+            if m != ''
+                if stridx(w, m) == 0
+                    let complete_str = m
+                    let matched_words += [w]
+                    let matched_common += [m]
+
+                    echom "Accepted"
+
+                endif
             endif
-            let m = str
         endfor
-
-        echom "word: " . w . ", match: " . m
-
-        if m != ''
-            if stridx(w, m) == 0
-                let complete_str = m
-                let matched_words += [w]
-                let matched_common += [m]
-
-                echom "Accepted"
-
-            endif
-        endif
     endfor
 
     echom "matched_common: " . string(matched_common)
