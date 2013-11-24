@@ -134,28 +134,35 @@ function! neocomplcache#mappings#complete_common_string() "{{{
     echom "words: " . string(words)
 
     " Try to match substrings of each candidate word.  The match is a
-    " substring of the current line that may be longer than the substring of
-    " the candidate work.  Accept a word only if it starts with the match.
-    " All accepted matches are equal and can be used as complete_str.
+    " substring of the current line and may be longer than the substring of
+    " the candidate word that was used as a pattern.  Accept a word only if it
+    " starts with the match.  All accepted matches are equal, and any of them
+    " can be used as complete_str.  Hence, the search is started with a
+    " substring that is at least as long as complete_str.
     let matched_common = []
     let matched_words = []
     for w in words
         let m = ''
-        for i in range(max([a:minlen - 2, len(w) - 1]), a:minlen - 1, -1)
+        for i in range(max([a:minlen - 1, len(complete_str) - 1]), max([a:minlen - 2, len(w) - 1]), 1)
             let pattern = '\V' . escape(w[0:i], '\')
-            let [_, cstr] =
+            let [_, str] =
                     \ neocomplcache#match_word(neocomplcache#get_cur_text(1), pattern)
-            if cstr != ''
-                let m = cstr
+            if str == ''
                 break
             endif
+            let m = str
         endfor
+
         echom "word: " . w . ", match: " . m
+
         if m != ''
             if stridx(w, m) == 0
                 let complete_str = m
                 let matched_words += [w]
                 let matched_common += [m]
+
+                echom "Accepted"
+
             endif
         endif
     endfor
@@ -164,23 +171,12 @@ function! neocomplcache#mappings#complete_common_string() "{{{
     echom "matched_words: " . string(matched_words)
 
     let common_str = s:common_head(matched_words)
-
-    " let common = s:common_head(matched_words)
-    " let common_str = common
-    " for i in range(max([a:minlen - 2, len(common) - 1]), a:minlen - 1, -1)
-    "     let pattern = '\V' . escape(common[0:i], '\')
-    "     let [_, cstr] =
-    "             \ neocomplcache#match_word(neocomplcache#get_cur_text(1), pattern)
-    "     if cstr != ''
-    "         let complete_str = cstr
-    "     endif
-    " endfor
   finally
     let g:neocomplcache_enable_fuzzy_completion = is_fuzzy
   endtry
 
-  echom "common_str: " . common_str
   echom "complete_str: " . complete_str
+  echom "common_str: " . common_str
 
   if &ignorecase
     let common_str = tolower(common_str)
