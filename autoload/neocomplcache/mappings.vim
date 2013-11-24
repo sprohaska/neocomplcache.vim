@@ -130,7 +130,11 @@ function! neocomplcache#mappings#complete_common_string() "{{{
     let words = map(copy(candidates), 'v:val.word')
     let words = filter(copy(words), 'len(v:val) >= '. a:minlen)
 
+    " echom "keys(neocomplcache): " . string(keys(neocomplcache))
+    " echom "neocomplcache: " . string(neocomplcache)
+    " echom "neocomplcache.complete_results: " . string(neocomplcache.complete_results)
     echom "neocomplcache.complete_str: " . neocomplcache.complete_str
+    echom "neocomplcache.complete_pos: " . neocomplcache.complete_pos
     echom "words: " . string(words)
 
     " Try to match substrings of each candidate word.  The match is a
@@ -139,6 +143,9 @@ function! neocomplcache#mappings#complete_common_string() "{{{
     " starts with the match.  All accepted matches are equal, and any of them
     " can be used as complete_str.  Hence, the search is started with a
     " substring that is at least as long as complete_str.
+    "
+    " TODO(spr): take complete_pos of results into account; maybe from
+    " complete_results.
     let matched_common = []
     let matched_words = []
     for w in words
