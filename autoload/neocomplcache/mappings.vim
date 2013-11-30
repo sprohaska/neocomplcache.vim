@@ -202,6 +202,9 @@ function! neocomplcache#mappings#complete_common_string() "{{{
   let &ignorecase = ignorecase_save
 
   if common_str == '' || complete_str == ''
+
+    echom "neocomplcache: " . string(neocomplcache)
+
     return ''
   endif
 
