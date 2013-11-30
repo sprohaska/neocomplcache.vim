@@ -208,8 +208,7 @@ function! neocomplcache#mappings#complete_common_string() "{{{
     return ''
   endif
 
-  return (pumvisible() ? "\<C-e>" : '')
-        \ . repeat("\<BS>", len(complete_str)) . common_str
+  return common_str[len(complete_str):]
 endfunction"}}}
 
 " Manual complete wrapper.
