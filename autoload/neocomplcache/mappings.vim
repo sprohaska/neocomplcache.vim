@@ -102,6 +102,8 @@ function! s:common_head(strs)
   return pat == '' ? '' : matchstr(strs[-1], '^\%[' . pat . ']')
 endfunction
 
+let g:neocomplcache_current_complete_words = []
+
 function! neocomplcache#mappings#complete_common_string() "{{{
   if !exists(':NeoComplCacheDisable')
     return ''
@@ -118,7 +120,7 @@ function! neocomplcache#mappings#complete_common_string() "{{{
 
   let is_fuzzy = g:neocomplcache_enable_fuzzy_completion
 
-  echom "XXX"
+  echom "neocomplcache manual complete"
 
   let complete_str = ''
   let common_str = ''
@@ -155,7 +157,12 @@ function! neocomplcache#mappings#complete_common_string() "{{{
         " echom "r: " . string(r)
         echom "cur_line: " . cur_line
         echom "cur_compl_text: " . cur_compl_text
-        echom "words: " . string(words)
+        echom "words (from neocomplcache): " . string(words)
+        echom "current_complete_words: " . string(g:neocomplcache_current_complete_words)
+        " Append words were given to vim's complete in
+        " neocomplcache#complete#manual_complete() to ensure that nothing gets
+        " lost.
+        let words += g:neocomplcache_current_complete_words
 
         for w in words
             let m = ''

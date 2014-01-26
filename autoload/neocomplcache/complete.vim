@@ -79,6 +79,7 @@ function! neocomplcache#complete#manual_complete(findstart, base) "{{{
         " Note: If Vim is less than 7.3.561, it have broken register "." problem.
         let dict.refresh = 'always'
       endif
+      let g:neocomplcache_current_complete_words = map(copy(dict.words), 'v:val.word')
       return dict
     else
       return neocomplcache.candidates
