@@ -98,7 +98,10 @@ function! s:common_head(strs)
     return a:strs[0]
   endif
   let strs = len == 2 ? a:strs : sort(copy(a:strs))
-  let pat = substitute(strs[0], '.', '[\0]', 'g')
+  let pat = escape(substitute(strs[0], '.', '[\0]', 'g'), '\')
+  " \%[] is a sequence of optionally matched atoms.  The following line
+  " returns the longest matched subsequence of the first string in the last.
+  " Because the strings are sorted, it yields the longest common string.
   return pat == '' ? '' : matchstr(strs[-1], '^\%[' . pat . ']')
 endfunction
 
@@ -120,7 +123,8 @@ function! neocomplcache#mappings#complete_common_string() "{{{
 
   let is_fuzzy = g:neocomplcache_enable_fuzzy_completion
 
-  echom "neocomplcache manual complete"
+  echom "neocomplcache manual complete ~~~"
+  echom "current_complete_words: " . string(g:neocomplcache_current_complete_words)
 
   let complete_str = ''
   let common_str = ''
