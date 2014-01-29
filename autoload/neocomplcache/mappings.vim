@@ -105,7 +105,7 @@ function! s:common_head(strs)
   return pat == '' ? '' : matchstr(strs[-1], '^\%[' . pat . ']')
 endfunction
 
-let g:neocomplcache_current_complete_words = []
+let g:neocomplcache_current_complete = { 'complete_pos': 0, 'words': [] }
 
 function! neocomplcache#mappings#complete_common_string() "{{{
   if !exists(':NeoComplCacheDisable')
@@ -124,7 +124,7 @@ function! neocomplcache#mappings#complete_common_string() "{{{
   let is_fuzzy = g:neocomplcache_enable_fuzzy_completion
 
   echom "neocomplcache manual complete ~~~"
-  echom "current_complete_words: " . string(g:neocomplcache_current_complete_words)
+  echom "current_complete_words: " . string(g:neocomplcache_current_complete.words)
 
   let complete_str = ''
   let common_str = ''
@@ -151,6 +151,46 @@ function! neocomplcache#mappings#complete_common_string() "{{{
     " started with a substring that is at least as long as complete_str.
     let matched_common = []
     let matched_words = []
+
+    " Search common string based on words and position that has ben previously
+    " returned to vim.
+    if 1
+        let words = g:neocomplcache_current_complete.words
+        let cur_compl_text = cur_line[g:neocomplcache_current_complete.complete_pos:]
+
+        echom "cur_line: " . cur_line
+        echom "complete_pos: " . g:neocomplcache_current_complete.complete_pos
+        echom "cur_compl_text: " . cur_compl_text
+        echom "current_complete_words: " . string(g:neocomplcache_current_complete.words)
+
+        for w in words
+            let m = ''
+            let start = max([a:minlen - 1, len(complete_str) - 1])
+            for i in range(start, max([start - 1, len(w) - 1]), 1)
+                let pattern = '\V' . escape(w[0:i], '\')
+                let [_, str] = neocomplcache#match_word(cur_compl_text, pattern)
+                if str == ''
+                    break
+                endif
+                let m = str
+            endfor
+
+            echom "word: " . w . ", match: " . m
+
+            if m != ''
+                if stridx(w, m) == 0
+                    let complete_str = m
+                    let matched_words += [w]
+                    let matched_common += [m]
+
+                    echom "Accepted"
+
+                endif
+            endif
+        endfor
+    endif
+
+    if 0  " Disable old code that used neocomplcache.complete_results.
     for r in neocomplcache.complete_results
         let cur_compl_text = cur_line[r.neocomplcache__context.complete_pos:]
 
@@ -162,11 +202,11 @@ function! neocomplcache#mappings#complete_common_string() "{{{
         echom "cur_line: " . cur_line
         echom "cur_compl_text: " . cur_compl_text
         echom "words (from neocomplcache): " . string(words)
-        echom "current_complete_words: " . string(g:neocomplcache_current_complete_words)
+        echom "current_complete_words: " . string(g:neocomplcache_current_complete.words)
         " Append words were given to vim's complete in
         " neocomplcache#complete#manual_complete() to ensure that nothing gets
         " lost.
-        let words += g:neocomplcache_current_complete_words
+        let words += g:neocomplcache_current_complete.words
 
         for w in words
             let m = ''
@@ -194,6 +234,7 @@ function! neocomplcache#mappings#complete_common_string() "{{{
             endif
         endfor
     endfor
+    endif
 
     echom "matched_common: " . string(matched_common)
     echom "matched_words: " . string(matched_words)
