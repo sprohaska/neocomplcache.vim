@@ -37,6 +37,9 @@ let s:converter = {
       \}
 
 function! s:converter.filter(context) "{{{
+  " spr: Disable case conversion.  I find it confusing.
+  return a:context.candidates
+
   if !neocomplcache#is_text_mode() && !neocomplcache#within_comment()
     return a:context.candidates
   endif
